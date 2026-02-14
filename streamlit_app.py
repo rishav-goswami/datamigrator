@@ -208,25 +208,30 @@ def preview_text(value: str, max_lines: int = 40) -> str:
 
 
 def generate_graph_mermaid() -> str:
-    """Generate Mermaid diagram for the orchestration graph."""
+    """Generate Mermaid diagram for the orchestration graph. No edge labels on validator to avoid 'Could not find a suitable point for the given distance' (Mermaid layout bug with multiple labeled edges from one node)."""
     return """
 graph TD
-    START([START]) --> analyst[Schema Analyst]
-    analyst --> generator[SQL Generator]
-    generator --> validator[Validator]
-    validator -->|Valid| explainer[Explainer]
-    validator -->|Invalid & retries < 3| generator
-    validator -->|Invalid & retries >= 3| FAIL([END - FAILED])
-    explainer --> END([END - SUCCESS])
-    
+    START["START"] --> analyst["Schema Analyst"]
+    analyst --> generator["SQL Generator"]
+    generator --> validator["Validator"]
+    validator --> explainer["Explainer"]
+    validator --> generator
+    validator --> FAIL_NODE[FAILED]
+    explainer --> SUCCESS_NODE[SUCCESS]
     style analyst fill:#e1f5ff,stroke:#01579b
     style generator fill:#fff9c4,stroke:#f57f17
     style validator fill:#f3e5f5,stroke:#4a148c
     style explainer fill:#e8f5e9,stroke:#1b5e20
     style START fill:#90caf9,stroke:#0d47a1
-    style END fill:#a5d6a7,stroke:#2e7d32
-    style FAIL fill:#ef9a9a,stroke:#c62828
+    style SUCCESS_NODE fill:#a5d6a7,stroke:#2e7d32
+    style FAIL_NODE fill:#ef9a9a,stroke:#c62828
 """
+
+
+def _mermaid_quote(s: str) -> str:
+    """Quote a label for Mermaid; escape double quotes inside. Replace # so it is not parsed as color."""
+    escaped = s.replace("#", "No.").replace('"', "#quot;")
+    return f'"{escaped}"'
 
 
 def generate_execution_path_mermaid(execution_path: list) -> str:
@@ -234,63 +239,66 @@ def generate_execution_path_mermaid(execution_path: list) -> str:
     if not execution_path:
         return """
 graph TD
-    START([No execution yet])
+    START(["No execution yet"])
     style START fill:#bdbdbd,stroke:#424242
 """
-    
-    mermaid = "graph TD\\n"
-    mermaid += "    START([START]) --> node0[" + execution_path[0] + "]\\n"
-    
+    lines = []
+    lines.append("graph TD")
+    lines.append(f'    START["START"] --> node0[{_mermaid_quote(execution_path[0])}]')
     for i in range(len(execution_path) - 1):
         current = execution_path[i]
         next_node = execution_path[i + 1]
-        mermaid += f"    node{i}[{current}] --> node{i+1}[{next_node}]\\n"
-    
-    # Add END node
+        lines.append(f'    node{i}[{_mermaid_quote(current)}] --> node{i+1}[{_mermaid_quote(next_node)}]')
     last_idx = len(execution_path) - 1
-    mermaid += f"    node{last_idx}[{execution_path[last_idx]}] --> END([END])\\n\\n"
-    
-    # Styling
+    lines.append(f'    node{last_idx}[{_mermaid_quote(execution_path[last_idx])}] --> DONE["DONE"]')
     for i, node in enumerate(execution_path):
         if "analyst" in node.lower():
-            mermaid += f"    style node{i} fill:#e1f5ff,stroke:#01579b\\n"
+            lines.append(f"    style node{i} fill:#e1f5ff,stroke:#01579b")
         elif "generator" in node.lower():
-            mermaid += f"    style node{i} fill:#fff9c4,stroke:#f57f17\\n"
+            lines.append(f"    style node{i} fill:#fff9c4,stroke:#f57f17")
         elif "validator" in node.lower():
             if "passed" in node.lower():
-                mermaid += f"    style node{i} fill:#e8f5e9,stroke:#1b5e20\\n"
+                lines.append(f"    style node{i} fill:#e8f5e9,stroke:#1b5e20")
             else:
-                mermaid += f"    style node{i} fill:#ffccbc,stroke:#bf360c\\n"
+                lines.append(f"    style node{i} fill:#ffccbc,stroke:#bf360c")
         elif "explainer" in node.lower():
-            mermaid += f"    style node{i} fill:#e8f5e9,stroke:#1b5e20\\n"
-    
-    mermaid += "    style START fill:#90caf9,stroke:#0d47a1\\n"
-    mermaid += "    style END fill:#a5d6a7,stroke:#2e7d32\\n"
-    
-    return mermaid
+            lines.append(f"    style node{i} fill:#e8f5e9,stroke:#1b5e20")
+    lines.append("    style START fill:#90caf9,stroke:#0d47a1")
+    lines.append("    style DONE fill:#a5d6a7,stroke:#2e7d32")
+    return "\n".join(lines)
 
 
-def render_mermaid(mermaid_code: str, height: int = 400) -> None:
-    """Render a Mermaid diagram using HTML and JavaScript."""
-    # Create HTML with Mermaid rendering
+def render_mermaid(mermaid_code: str, height: int = 400, debug: bool = False) -> None:
+    """Render a Mermaid diagram using HTML and JavaScript. On error, shows Mermaid's message."""
+    if debug:
+        with st.expander("Debug: Mermaid source (raw)"):
+            st.code(mermaid_code, language="text")
     html_template = f"""
     <!DOCTYPE html>
     <html>
     <head>
         <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
         <script>
-            mermaid.initialize({{ startOnLoad: true, theme: 'dark', themeVariables: {{ fontSize: '16px' }} }});
+            mermaid.initialize({{ startOnLoad: false, theme: 'dark', themeVariables: {{ fontSize: '16px' }} }});
         </script>
     </head>
     <body style="background-color: transparent; margin: 0; padding: 20px;">
         <div class="mermaid">
 {mermaid_code}
         </div>
+        <script>
+            (function() {{
+                var el = document.querySelector('.mermaid');
+                if (!el) return;
+                mermaid.run({{ nodes: [el] }}).catch(function(err) {{
+                    var msg = (err.message || String(err)).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                    el.innerHTML = '<div style="color:#ff6b6b; font-family:monospace; white-space:pre-wrap; padding:8px;">Mermaid error: ' + msg + '</div>';
+                }});
+            }})();
+        </script>
     </body>
     </html>
     """
-    
-    # Render using iframe
     components.html(html_template, height=height, scrolling=True)
 
 
