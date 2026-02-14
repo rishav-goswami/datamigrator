@@ -75,7 +75,7 @@ class ValidationError(BaseModel):
 
 class ValidationResult(BaseModel):
     is_valid: bool
-    errors: List[ValidationError] = []
-    warnings: List[ValidationError] = []
+    errors: List[ValidationError] = Field(default_factory=list)
+    warnings: List[ValidationError] = Field(default_factory=list)
     test_row_count: int = 0
     validation_timestamp: datetime = Field(default_factory=utcnow)

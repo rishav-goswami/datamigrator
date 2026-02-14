@@ -31,17 +31,19 @@ class MemoryClient:
             return
 
         settings = get_settings()
+        host = settings.CHROMA_HOST or "localhost"
+        port = settings.CHROMA_PORT or 8000
 
         try:
             import socket
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             sock.settimeout(1)
-            result = sock.connect_ex(('localhost', 8000))
+            result = sock.connect_ex((host, port))
             sock.close()
 
             if result == 0:
                 self.client = chromadb.HttpClient(
-                    host="localhost", port=8000, settings=ChromaSettings(allow_reset=True)
+                    host=host, port=port, settings=ChromaSettings(allow_reset=True)
                 )
             else:
                 self.client = chromadb.PersistentClient(path="./chroma_data")

@@ -42,6 +42,16 @@ class ValidationAgent:
         errors: List[ValidationError] = []
         warnings: List[ValidationError] = []
 
+        if not sql_script or not report:
+            errors.append(
+                ValidationError(
+                    severity="ERROR",
+                    category="runtime",
+                    message="SQL script or schema report is missing.",
+                )
+            )
+            return ValidationResult(is_valid=False, errors=errors, warnings=warnings)
+
         syntax_errors = self._check_syntax(sql_script)
         errors.extend(syntax_errors)
 

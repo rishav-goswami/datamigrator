@@ -11,6 +11,7 @@ from agents.validator import ValidationAgent
 from core.config import get_settings
 from core.llm import LLMClient
 from core.memory import MemoryClient
+from core.models import ValidationError, ValidationResult
 from core.state import MigrationState
 
 
@@ -29,7 +30,12 @@ def sql_generator_node(state: MigrationState) -> MigrationState:
 
     feedback = state.validation_errors if state.retry_count > 0 else None
 
-    result = agent.generate(state.schema_report, state.context, feedback)
+    result = agent.generate(
+        state.schema_report,
+        state.context,
+        feedback,
+        retry_count=state.retry_count,
+    )
 
     state.sql_script = result.sql_script
     state.retry_count += 1
@@ -37,6 +43,20 @@ def sql_generator_node(state: MigrationState) -> MigrationState:
 
 
 def validator_node(state: MigrationState) -> MigrationState:
+    if state.sql_script is None or state.schema_report is None:
+        state.validation_result = ValidationResult(
+            is_valid=False,
+            errors=[
+                ValidationError(
+                    severity="ERROR",
+                    category="runtime",
+                    message="Missing schema report or SQL script from previous steps.",
+                )
+            ],
+        )
+        state.validation_errors = [e.message for e in state.validation_result.errors]
+        return state
+
     settings = get_settings()
     agent = ValidationAgent(settings.DATABASE_URL)
 
@@ -48,6 +68,14 @@ def validator_node(state: MigrationState) -> MigrationState:
 
 
 def explainer_node(state: MigrationState) -> MigrationState:
+    if (
+        state.sql_script is None
+        or state.schema_report is None
+        or state.validation_result is None
+    ):
+        state.explanation = "# Migration Explanation\n\nCould not generate: missing inputs from previous steps."
+        return state
+
     llm = LLMClient().get_client()
     agent = ExplainerAgent(llm)
 

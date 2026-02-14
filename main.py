@@ -16,6 +16,8 @@ from core.state import MigrationState
 
 
 def format_validation_report(result) -> str:
+    if result is None:
+        return "# Validation Report\n\nNo validation result available."
     timestamp = result.validation_timestamp.strftime("%Y-%m-%d %H:%M:%S UTC")
     status = "✅ PASSED" if result.is_valid else "❌ FAILED"
 

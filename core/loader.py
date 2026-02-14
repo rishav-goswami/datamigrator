@@ -24,7 +24,7 @@ class DataLoader:
             tables = [TableSchema(**table) for table in data.get("tables", [])]
             return tables
         except ValidationError as e:
-            raise ValidationError(
+            raise ValueError(
                 f"Invalid schema format in {file_path}: {e}"
             ) from e
 
@@ -42,7 +42,7 @@ class DataLoader:
                     mapping = MappingRule(**row)
                     mappings.append(mapping)
                 except ValidationError as e:
-                    raise ValidationError(
+                    raise ValueError(
                         f"Invalid mapping row in {file_path}: {row}. Error: {e}"
                     ) from e
 
