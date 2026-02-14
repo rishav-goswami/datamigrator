@@ -565,11 +565,11 @@ def run_migration_workflow(source_file: Path, target_file: Path, mapping_file: P
         output_dir = Path("outputs")
         output_dir.mkdir(exist_ok=True)
 
-        with open(output_dir / "sample_output.sql", "w") as f:
+        with open(output_dir / "sample_output.sql", "w", encoding="utf-8") as f:
             f.write(final_state.sql_script or "")
-        with open(output_dir / "validation_report.md", "w") as f:
+        with open(output_dir / "validation_report.md", "w", encoding="utf-8") as f:
             f.write(validation_report)
-        with open(output_dir / "sql_explanation.md", "w") as f:
+        with open(output_dir / "sql_explanation.md", "w", encoding="utf-8") as f:
             f.write(final_state.explanation or "")
         save_end = time.perf_counter()
         add_event(f"Outputs saved: {round(save_end - save_start, 3)}s")
