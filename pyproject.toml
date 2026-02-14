@@ -1,0 +1,40 @@
+[project]
+name = "data-migrator"
+version = "0.1.0"
+description = "Multiagent data migration orchestrator"
+authors = [
+    {name = "Rishav Anand", email = "77602579+rishav-goswami@users.noreply.github.com"}
+]
+readme = "README.md"
+requires-python = ">=3.12,<4.0"
+dependencies = [
+    "pydantic>=2.7.0",
+    "pydantic-settings>=2.2.1",
+    "langchain-openai>=0.1.8",
+    "langchain-groq>=0.1.5",
+    "langchain-ollama>=0.1.2",
+    "redis>=5.0.4",
+    "asyncpg>=0.29.0",
+    "chromadb>=0.5.0",
+    "sqlparse (>=0.5.5,<0.6.0)",
+    "langgraph (>=1.0.8,<2.0.0)",
+    "streamlit>=1.31.0",
+    "pandas>=2.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.2.0",
+    "ruff>=0.6.0",
+    "black>=24.8.0",
+]
+
+[tool.poetry]
+package-mode = false
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
