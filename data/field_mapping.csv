@@ -1,0 +1,7 @@
+SourceTable,SourceColumn,TargetTable,TargetColumn,TransformationParams
+RE_Constituent_Export,Cons_ID,Contact,Legacy_Id__c,Direct Map
+RE_Constituent_Export,Full_Name,Contact,LastName,Extract Last Name
+RE_Constituent_Export,Full_Name,Contact,FirstName,Extract First Name
+RE_Constituent_Export,Gift_Amt,Opportunity,Amount,"Remove '$', Cast to Decimal"
+RE_Constituent_Export,Gift_Date,Opportunity,CloseDate,"Parse 'MM/DD/YYYY' to 'YYYY-MM-DD'"
+RE_Constituent_Export,Campaign_Code,Opportunity,Name,"Concatenate 'Donation - ' + Campaign_Code"
