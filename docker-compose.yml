@@ -1,0 +1,75 @@
+services:
+  migrator-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ./data:/app/data
+      - ./outputs:/app/outputs
+    environment:
+      - DOCKER_BUILDKIT=1
+      - LANGCHAIN_TRACING_V2=false
+      - LLM_PROVIDER=${LLM_PROVIDER:-groq}
+      - LLM_MODEL=${LLM_MODEL:-llama-3.3-70b-versatile}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - GROQ_API_KEY=${GROQ_API_KEY}
+      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL}
+      - DATABASE_URL=postgresql://user:password@db:5432/migration_db
+      - REDIS_URL=redis://redis:6379/0
+      - CHROMA_HOST=vector-db
+      - CHROMA_PORT=8000
+    depends_on:
+      - db
+      - redis
+      - vector-db
+
+  streamlit:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: streamlit run streamlit_app.py --server.port=8501 --server.address=0.0.0.0
+    ports:
+      - "8501:8501"
+    volumes:
+      - ./data:/app/data
+      - ./outputs:/app/outputs
+    environment:
+      - LANGCHAIN_TRACING_V2=false
+      - LLM_PROVIDER=${LLM_PROVIDER:-groq}
+      - LLM_MODEL=${LLM_MODEL:-llama-3.3-70b-versatile}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - GROQ_API_KEY=${GROQ_API_KEY}
+      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL}
+      - DATABASE_URL=postgresql://user:password@db:5432/migration_db
+      - REDIS_URL=redis://redis:6379/0
+      - CHROMA_HOST=vector-db
+      - CHROMA_PORT=8000
+    depends_on:
+      - db
+      - redis
+      - vector-db
+
+  db:
+    image: postgres:15-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: migration_db
+    ports:
+      - "5432:5432"
+
+  vector-db:
+    image: chromadb/chroma:latest
+    ports:
+      - "8000:8000"
+    volumes:
+      - chroma-data:/chroma/chroma
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+volumes:
+  chroma-data:
