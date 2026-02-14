@@ -9,13 +9,14 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
-    LLM_PROVIDER: Literal["openai", "groq", "ollama"] = "groq"
+    LLM_PROVIDER: Literal["openai", "groq", "ollama", "gemini"] = "groq"
     LLM_MODEL: str = "llama-3.3-70b-versatile"
     DATABASE_URL: str = ""
     REDIS_URL: str = ""
     OPENAI_API_KEY: str = ""
     GROQ_API_KEY: str = ""
     OLLAMA_BASE_URL: str = ""
+    GEMINI_API_KEY: str = ""
     CHROMA_HOST: str = "localhost"
     CHROMA_PORT: int = 8000
 

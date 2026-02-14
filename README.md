@@ -51,16 +51,25 @@ docker-compose up streamlit -d           # Streamlit UI at http://localhost:8501
 docker-compose up migrator-app           # CLI one-shot run
 ```
 
-### 5. Run locally (without Docker)
+### 5. Run locally (infra in Docker, app on host)
+
+Start only the backing services, then run the app with Poetry:
 
 ```bash
+# Terminal 1: start infra
+docker compose up vector-db redis db -d
+
+# In this project directory, use the project env (not another venv)
 poetry install
 cp .env.example .env
-# Edit .env with your LLM keys
-poetry run python main.py                # CLI
-# or
-poetry run streamlit run streamlit_app.py --server.port=8501   # UI
+# Edit .env with your LLM keys (e.g. GROQ_API_KEY)
+
+# Terminal 2: run Streamlit (must use poetry run so streamlit is from this project)
+poetry run streamlit run streamlit_app.py --server.port=8501 --server.address=0.0.0.0
 ```
+
+Then open **http://localhost:8501**.  
+CLI one-shot: `poetry run python main.py`
 
 ### 6. Input data
 
@@ -80,8 +89,9 @@ Sample files are already in `data/` for a Raiser's Edge → Salesforce-style mig
 
 - **Default:** **Llama 3.3 70B Versatile** (`llama-3.3-70b-versatile`) via **Groq** (fast inference, free tier available).
 - **Alternatives:**
-  - **OpenAI:** set `LLM_PROVIDER=openai` and `OPENAI_API_KEY`; model is set via `LLM_MODEL` (e.g. `gpt-4o`).
-  - **Ollama (local):** set `LLM_PROVIDER=ollama` and run Ollama locally; set `LLM_MODEL` to the model name (e.g. `llama3`, `mistral`).
+  - **OpenAI:** set `LLM_PROVIDER=openai` and `OPENAI_API_KEY`; set `LLM_MODEL` (e.g. `gpt-4o`).
+  - **Gemini:** set `LLM_PROVIDER=gemini` and `GEMINI_API_KEY`; set `LLM_MODEL` (e.g. `gemini-1.5-flash`, `gemini-1.5-pro`). All LLM calls use retries with exponential backoff to reduce rate-limit failures.
+  - **Ollama (local):** set `LLM_PROVIDER=ollama` and run Ollama locally; set `LLM_MODEL` (e.g. `llama3`, `mistral`).
 
 All four agents (Schema Analyst, SQL Generator, Validation, Explainer) use the same LLM backend configured in `.env`.
 
